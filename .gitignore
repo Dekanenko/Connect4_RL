@@ -1,0 +1,14 @@
+# MLflow
+/mlruns/
+/mlflow.db
+
+# Models
+/models/
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
