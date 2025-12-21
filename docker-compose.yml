@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: connect4-backend
+    ports:
+      - "8000:8000"
+    environment:
+      # This is where you would put your best model's run_id for production
+      # MLFLOW_RUN_ID: "your_best_run_id_here"
+      PYTHONUNBUFFERED: 1
+    volumes:
+      # Mount the mlruns directory to allow the backend to access it
+      # This is for local development convenience. In production, the model is baked in.
+      - ./mlruns:/app/mlruns
+    networks:
+      - connect4-net
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    image: connect4-frontend
+    ports:
+      - "8501:8501"
+    environment:
+      # This is the key for inter-container communication.
+      # The frontend can reach the backend using its service name 'backend'.
+      - BACKEND_URL=http://backend:8000/api
+    depends_on:
+      - backend
+    networks:
+      - connect4-net
+
+networks:
+  connect4-net:
+    driver: bridge
+
