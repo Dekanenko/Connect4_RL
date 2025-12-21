@@ -1,0 +1,18 @@
+[tool.pyright]
+include = ["src"]
+exclude = ["**/node_modules",
+    "**/__pycache__",
+    "src/experimental",
+    "src/typestubs"
+]
+reportMissingImports = true
+reportUnusedVariable = "warning"
+
+pythonVersion = "3.11"
+pythonPlatform = "Linux"
+
+[tool.pytest.ini_options]
+pythonpath = [
+  "src"
+]
+
