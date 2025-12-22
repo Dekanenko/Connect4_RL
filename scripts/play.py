@@ -55,7 +55,6 @@ def play(run_id: str, auto_play: bool):
     agent = DQNAgent(
         state_shape=env.state_shape,
         actions_num=env.actions_num,
-        env=env,
         device=device,
     )
 
