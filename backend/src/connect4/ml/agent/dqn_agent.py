@@ -126,14 +126,6 @@ class DQNAgent:
         # Bellman target
         with torch.no_grad():
             next_q_values = self.target_model(next_states)
-            
-            # Invalid Action Masking for Next States
-            for i in range(len(next_states)):
-                next_state = next_states[i]
-                valid_actions_next = self._get_valid_actions_from_state(next_state)
-                invalid_actions_next = [a for a in range(self.actions_num) if a not in valid_actions_next]
-                if invalid_actions_next:
-                    next_q_values[i, invalid_actions_next] = -float("inf")
 
             max_next_q = next_q_values.max(dim=1)[0]
             # The reward is from the perspective of the player who made the move.
