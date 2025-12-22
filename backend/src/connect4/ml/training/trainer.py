@@ -66,6 +66,8 @@ class Trainer:
         }
         self.epsilon = epsilon_start
         self.save_dir = save_dir
+        self.best_model_save_path = os.path.join(self.save_dir, "dqn_agent.pth")
+        self.best_win_rate = 0.5  # Initial threshold to save a model
 
         # Set the seed for reproducibility
         set_seed(self.params["seed"])
@@ -88,9 +90,6 @@ class Trainer:
         mlflow.log_params(self.params)
         global_step = 0
         final_eval_metrics = {}
-
-        best_win_rate = 0.5
-        best_episode = 0
 
         for episode in range(1, self.params["num_episodes"] + 1):
             state_np = self.env.reset()
@@ -135,30 +134,132 @@ class Trainer:
             if episode % self.params["eval_freq"] == 0:
                 eval_metrics = self.evaluate()
                 final_eval_metrics = eval_metrics
-                renamed_metrics = {f"eval_{k}": v for k, v in eval_metrics.items()}
-                mlflow.log_metrics(renamed_metrics, step=episode)
+                mlflow.log_metrics(eval_metrics, step=episode)
 
                 print(f"--- Evaluation at Episode {episode} ---")
-                print(f"Win Rate vs Rule-Based: {eval_metrics['win_rate']:.2f}")
-                print(f"Draw Rate vs Rule-Based: {eval_metrics['draw_rate']:.2f}")
-                print(f"Loss Rate vs Rule-Based: {eval_metrics['loss_rate']:.2f}")
+                print(f"Win Rate vs Rule-Based: {eval_metrics['win_rate_vs_rules']:.2f}")
+                if "win_rate_vs_best" in eval_metrics:
+                    print(f"Win Rate vs Previous Best: {eval_metrics['win_rate_vs_best']:.2f}")
                 print("------------------------------------")
 
-                if self.params["store_best_model"] and eval_metrics["win_rate"] > best_win_rate:
-                    best_win_rate = eval_metrics["win_rate"]
-                    best_episode = episode
-                    self.save_model()
+                if self.params["store_best_model"]:
+                    win_rate_vs_rules = eval_metrics["win_rate_vs_rules"]
+                    new_best_found = False
+
+                    # Case 1: High-performance regime (must beat previous best)
+                    if "win_rate_vs_best" in eval_metrics:
+                        win_rate_vs_best = eval_metrics["win_rate_vs_best"]
+                        if win_rate_vs_rules >= self.best_win_rate and win_rate_vs_best > 0.50:
+                            new_best_found = True
+                    # Case 2: Standard improvement (before vs-best evaluation is triggered)
+                    else:
+                        if win_rate_vs_rules > self.best_win_rate:
+                            new_best_found = True
+                    
+                    if new_best_found:
+                        self.best_win_rate = win_rate_vs_rules
+                        print(f"New best model found at episode {episode} with win rate {self.best_win_rate:.2f}. Saving model.")
+                        self.save_model()
             
             if episode % 1000 == 0:
                 self.params["learning_rate"] = max(self.params["learning_rate"] * self.params["learning_rate_decay"], 1e-5)
                 self.agent.optimizer.param_groups[0]["lr"] = self.params["learning_rate"]
 
-        # self.save_model()
-        print(f"Best Win Rate: {best_win_rate:.2f} at Episode {best_episode}")
-        return final_eval_metrics.get("win_rate", 0.0)
+        print(f"Training finished. Best win rate vs rules: {self.best_win_rate:.2f}")
+        return final_eval_metrics.get("win_rate_vs_rules", 0.0)
+
+    def _run_evaluation_games(self, opponent, description: str) -> dict:
+        """Helper function to run evaluation games against a given opponent."""
+        self.agent.model.eval()
+        wins, draws, losses = 0, 0, 0
+        is_opponent_dqn = isinstance(opponent, DQNAgent)
+
+        if is_opponent_dqn:
+            opponent.model.eval()
+
+        for _ in tqdm(range(self.params["num_eval_games"]), desc=description):
+            state_np = self.env.reset()
+            done = False
+            agent_player_id = np.random.choice([Connect4Engine.PLAYER_1, Connect4Engine.PLAYER_2])
+
+            # Set the rule-based agent's player ID for the current game
+            if not is_opponent_dqn:
+                opponent.player_id = 3 - agent_player_id
+                opponent.opponent_id = agent_player_id
+
+            while not done:
+                current_player = self.env.engine.current_player
+                state = torch.tensor(state_np, dtype=torch.float32, device=self.device)
+
+                if current_player == agent_player_id:
+                    action = self.agent.act(state, epsilon=0.0)
+                else:  # Opponent's turn
+                    if is_opponent_dqn:
+                        action = opponent.act(state, epsilon=0.0)
+                    else: # Assumes RuleBasedAgent
+                        action = opponent.act()
+                
+                state_np, _, done, _ = self.env.step(action)
+
+            winner = self.env.engine.winner
+            if winner == agent_player_id: wins += 1
+            elif winner == Connect4Engine.DRAW: draws += 1
+            else: losses += 1
+
+        self.agent.model.train()
+        total_games = self.params["num_eval_games"]
+        return {
+            "wins": wins / total_games,
+            "draws": draws / total_games,
+            "losses": losses / total_games,
+        }
 
     def evaluate(self) -> dict:
-        self.agent.model.eval()
+        """
+        Orchestrates the evaluation process against the rule-based agent and,
+        if applicable, against the previous best model.
+        """
+        # --- Stage 1: Evaluate against Rule-Based Agent ---
+        # The gameplay logic here remains the same as your original implementation.
+        rule_based_agent = RuleBasedAgent(env=self.env, player_id=-1)  # ID is set in helper
+        metrics_vs_rules = self._run_evaluation_games(
+            opponent=rule_based_agent, description="Evaluating vs Rules"
+        )
+        
+        metrics = {
+            "win_rate_vs_rules": metrics_vs_rules["wins"],
+            "draw_rate_vs_rules": metrics_vs_rules["draws"],
+            "loss_rate_vs_rules": metrics_vs_rules["losses"],
+        }
+
+        # --- Stage 2: Conditionally Evaluate against Previous Best ---
+        if metrics["win_rate_vs_rules"] >= 0.70:
+            if not os.path.exists(self.best_model_save_path):
+                print("\nWin rate >= 70% but no previous best model found to compare against. Skipping.")
+            else:
+                print("\nWin rate >= 70%. Evaluating against previous best model.")
+                previous_best_agent = DQNAgent(
+                    state_shape=self.env.state_shape,
+                    actions_num=self.env.actions_num,
+                    device=self.device,
+                )
+                previous_best_agent.model.load_state_dict(
+                    torch.load(self.best_model_save_path, map_location=self.device)
+                )
+
+                self.check_previous_best_model(previous_best_agent)
+
+                metrics_vs_best = self._run_evaluation_games(
+                    opponent=previous_best_agent, description="Evaluating vs Best"
+                )
+                metrics["win_rate_vs_best"] = metrics_vs_best["wins"]
+                metrics["draw_rate_vs_best"] = metrics_vs_best["draws"]
+                metrics["loss_rate_vs_best"] = metrics_vs_best["losses"]
+
+        return metrics
+    
+    def check_previous_best_model(self, previous_best_agent) -> dict:
+        previous_best_agent.model.eval()
         wins, draws, losses = 0, 0, 0
 
         for _ in tqdm(range(self.params["num_eval_games"]), desc="Evaluating"):
@@ -175,7 +276,7 @@ class Trainer:
                 current_player = self.env.engine.current_player
                 if current_player == agent_player_id:
                     state = torch.tensor(state_np, dtype=torch.float32, device=self.device)
-                    action = self.agent.act(state, epsilon=0.0)
+                    action = previous_best_agent.act(state, epsilon=0.0)
                 else:
                     action = rule_based_agent.act()
                 state_np, _, done, _ = self.env.step(action)
@@ -185,19 +286,18 @@ class Trainer:
             elif winner == Connect4Engine.DRAW: draws += 1
             else: losses += 1
 
-        self.agent.model.train()
         total_games = self.params["num_eval_games"]
-        return {
+        metrics = {
             "win_rate": wins / total_games,
             "draw_rate": draws / total_games,
             "loss_rate": losses / total_games,
         }
+        print(f"Win rate (rule based agent vs previous best agent): {metrics['win_rate']:.2f}")
 
     def save_model(self):
         os.makedirs(self.save_dir, exist_ok=True)
-        save_path = os.path.join(self.save_dir, "dqn_agent.pth")
-        torch.save(self.agent.model.state_dict(), save_path)
-        print(f"Model saved to {save_path}")
+        torch.save(self.agent.model.state_dict(), self.best_model_save_path)
+        print(f"Model saved to {self.best_model_save_path}")
 
         mlflow.pytorch.log_model(self.agent.model, "model")
         print("Model also logged as an MLflow artifact.")
