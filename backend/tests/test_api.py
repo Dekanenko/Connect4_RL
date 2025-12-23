@@ -25,8 +25,12 @@ def client():
         # Get the instance that will be returned when DQNAgent(...) is called
         mock_instance = MockAgent.return_value
         
-        # Configure the mock's `act` method to always return 0, as you intended.
+        # Configure the mock's `act` method to always return 0.
         mock_instance.act.return_value = 0
+        
+        # Configure the `device` attribute on the mock, which is accessed
+        # by the endpoint code. `torch.tensor` accepts a string.
+        mock_instance.device = "cpu"
         
         # The TestClient will now start the app, and the lifespan will
         # unknowingly use our pre-configured mock instance.
