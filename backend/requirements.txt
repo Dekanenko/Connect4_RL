@@ -1,4 +1,5 @@
 fastapi
+httpx
 uvicorn[standard]
 torch
 numpy
@@ -7,3 +8,4 @@ tqdm
 pytest
 requests
 python-multipart
+gunicorn

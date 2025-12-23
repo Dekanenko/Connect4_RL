@@ -52,15 +52,23 @@ async def initialize_game(request: Request, _: None = Depends(clean_stale_sessio
     ai_player = choice([Connect4Engine.PLAYER_1, Connect4Engine.PLAYER_2])
     human_player = Connect4Engine.PLAYER_2 if ai_player == Connect4Engine.PLAYER_1 else Connect4Engine.PLAYER_1
     
+    print(f"AI player: {ai_player}, Human player: {human_player}")
+    print(f"Current player: {env.engine.current_player}")
+
     # If AI is Player 1, it needs to make the first move.
     if ai_player == env.engine.current_player:
+        print(f"AI is current player: {env.engine.current_player}")
         agent = request.app.state.agent
         if random() < 0.5: # 50% chance to use the agent, 50% chance to use a random move
+            print("Using agent")
             state_np = env._get_state()
             state = torch.tensor(state_np, dtype=torch.float32, device=agent.device)
             action = agent.act(state, epsilon=0.0)
         else:
+            print("Using random move")
             action = choice(env.engine.get_valid_actions())
+        
+        print(f"Action: {action}")
         
         env.step(action)
     
