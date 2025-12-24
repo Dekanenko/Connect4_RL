@@ -1,4 +1,5 @@
 from aws_cdk import (
+    CfnOutput,
     Stack,
     aws_ec2 as ec2,
     aws_ecs as ecs,
@@ -65,7 +66,10 @@ class Connect4CdkStack(Stack):
             logging=ecs.LogDrivers.aws_logs(
                 stream_prefix="Connect4Frontend",
                 log_retention=logs.RetentionDays.ONE_WEEK
-            )
+            ),
+            environment={
+                "BACKEND_URL": f"http://{lb.load_balancer_dns_name}"
+            }
         )
 
         # Part 5: Application Load Balancer (ALB) and Services
@@ -135,4 +139,12 @@ class Connect4CdkStack(Stack):
             action=elbv2.ListenerAction.forward(
                 target_groups=[backend_target_group]
             )
+        )
+
+        # Part 6: Stack Outputs
+        # This will print the public DNS name of the Load Balancer in the
+        # terminal after a successful deployment.
+        CfnOutput(
+            self, "LoadBalancerDNS",
+            value=f"http://{lb.load_balancer_dns_name}"
         )
