@@ -18,25 +18,23 @@ class Connect4CdkStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        # Part 1: Networking Foundation (VPC)
-        # We create a new Virtual Private Cloud to provide a logically isolated
-        # network environment for the application. This is a best practice.
+        # Part 1: Networking and Cluster Foundation
         vpc = ec2.Vpc(self, "Connect4Vpc", max_azs=2)
-
-        # Part 2: Container Orchestration (ECS Cluster)
-        # An ECS Cluster is a logical grouping for our containerized services.
         cluster = ecs.Cluster(self, "Connect4Cluster", vpc=vpc)
 
+        # Part 2: Load Balancer
+        # Create the ALB first, as its DNS name is needed by the frontend container.
+        lb = elbv2.ApplicationLoadBalancer(
+            self, "Connect4ALB",
+            vpc=vpc,
+            internet_facing=True
+        )
+
         # Part 3: Referencing Existing ECR Repositories
-        # We get a reference to the Docker image repositories that our CI/CD
-        # pipeline is already pushing to.
         backend_repo = ecr.Repository.from_repository_name(self, "BackendRepo", "connect4-backend")
         frontend_repo = ecr.Repository.from_repository_name(self, "FrontendRepo", "connect4-frontend")
 
         # Part 4: Task Definitions (Blueprints for our Services)
-        # These define what Docker image to use, CPU/memory requirements,
-        # and logging configuration for our containers.
-
         # Backend Task Definition
         backend_task_definition = ecs.FargateTaskDefinition(
             self, "BackendTaskDef",
@@ -53,7 +51,7 @@ class Connect4CdkStack(Stack):
             )
         )
 
-        # Frontend Task Definition
+        # Frontend Task Definition (now safely referencing the ALB)
         frontend_task_definition = ecs.FargateTaskDefinition(
             self, "FrontendTaskDef",
             memory_limit_mib=512,
@@ -68,15 +66,12 @@ class Connect4CdkStack(Stack):
                 log_retention=logs.RetentionDays.ONE_WEEK
             ),
             environment={
-                "BACKEND_URL": f"http://{lb.load_balancer_dns_name}"
+                "BACKEND_URL": f"http://{lb.load_balancer_dns_name}/api"
             }
         )
 
-        # Part 5: Application Load Balancer (ALB) and Services
-        # We create ECS Services to run and maintain our tasks, and an ALB
-        # to route public internet traffic to the correct service.
-        
-        # Create the ECS services
+        # Part 5: ECS Services
+        # Create the services that will run the tasks.
         backend_service = ecs.FargateService(
             self, "BackendService",
             cluster=cluster,
@@ -91,18 +86,11 @@ class Connect4CdkStack(Stack):
             desired_count=1,
         )
 
-        # Create the Application Load Balancer
-        lb = elbv2.ApplicationLoadBalancer(
-            self, "Connect4ALB",
-            vpc=vpc,
-            internet_facing=True
-        )
-        
-        # Create a listener on port 80 (HTTP)
+        # Part 6: ALB Listener and Routing Rules
+        # Now configure the ALB to route traffic to the services.
         listener = lb.add_listener("PublicListener", port=80)
 
-        # Add the frontend service as the default target for the listener.
-        # This will create a default target group and route traffic to the frontend.
+        # Default rule: Route traffic to the frontend
         listener.add_targets(
             "FrontendTarget",
             port=80,
@@ -113,12 +101,7 @@ class Connect4CdkStack(Stack):
             )
         )
 
-        # Now, create a second, path-based rule for the backend service.
-        # This rule will be checked first (due to priority 1). If the path matches
-        # /api/*, traffic will be sent to the backend. Otherwise, it will fall through
-        # to the default rule (the frontend).
-        
-        # First, create a target group for the backend
+        # Path-based rule for the backend
         backend_target_group = elbv2.ApplicationTargetGroup(
             self, "BackendTargetGroup",
             vpc=vpc,
@@ -141,9 +124,7 @@ class Connect4CdkStack(Stack):
             )
         )
 
-        # Part 6: Stack Outputs
-        # This will print the public DNS name of the Load Balancer in the
-        # terminal after a successful deployment.
+        # Part 7: Stack Outputs
         CfnOutput(
             self, "LoadBalancerDNS",
             value=f"http://{lb.load_balancer_dns_name}"

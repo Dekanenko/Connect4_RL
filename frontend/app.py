@@ -19,7 +19,7 @@ def render_board_and_buttons(board: list[list[int]], game_state: dict):
         for i, cell in enumerate(row_data):
             with cols[i]:
                 st.markdown(
-                    f"<div style='font-size: 2rem; text-align: center;'>{colors[cell]}</div>",
+                    f"<div class='board-cell'>{colors[cell]}</div>",
                     unsafe_allow_html=True,
                 )
     
@@ -47,18 +47,25 @@ def render_board_and_buttons(board: list[list[int]], game_state: dict):
                 use_container_width=True
             )
 
-def render_game_status(game_state: dict):
-    """Displays the current status of the game."""
+def render_game_info(game_state: dict):
+    """Displays the current game status, player color, and AI first-move toast."""
+    # Handle AI first move toast
+    if st.session_state.get("ai_made_first_move"):
+        st.toast("The AI was chosen to go first! 🤖")
+        st.session_state.ai_made_first_move = False
+
+    # Display game over status
     if game_state.get("game_over"):
         winner = game_state.get("winner")
         human_player = game_state.get("human_player")
-        if winner == 3:  # Engine uses 3 for a draw
+        if winner == 3:
             st.success("The game is a draw! 🤝")
         elif winner == human_player:
             st.balloons()
             st.success("Congratulations! You won! 🎉")
         else:
             st.error("The AI won. Better luck next time! 🤖")
+    # Display in-progress status
     else:
         current_player = game_state.get("current_player")
         human_player = game_state.get("human_player")
@@ -66,6 +73,13 @@ def render_game_status(game_state: dict):
             st.info("Your turn. Please make a move.")
         else:
             st.warning("AI is thinking...")
+
+        # Display player color info below the status message
+        human_player_id = game_state.get("human_player")
+        if human_player_id:
+            colors = {1: "Red (🔴)", 2: "Yellow (🟡)"}
+            st.markdown(f"**You are playing as {colors.get(human_player_id, 'Unknown')}**")
+
 
 # --- API Communication & State Management ---
 def init_game():
@@ -77,7 +91,14 @@ def init_game():
     try:
         response = requests.post(f"{BACKEND_URL}/game/init")
         response.raise_for_status()
-        st.session_state.game_state = response.json()
+        game_state = response.json()
+        st.session_state.game_state = game_state
+
+        # Check if the board is not empty, which implies AI moved first
+        board = game_state.get("board", [])
+        if any(sum(row) > 0 for row in board):
+            st.session_state.ai_made_first_move = True
+
     except requests.exceptions.RequestException as e:
         st.session_state.error = f"Error connecting to the backend: {e}"
 
@@ -106,6 +127,23 @@ st.set_page_config(page_title="Connect4 AI", layout="centered")
 
 st.title("Play Connect4 Against an AI")
 
+# --- Responsive CSS ---
+st.markdown("""
+<style>
+.board-cell {
+    font-size: 2rem;
+    text-align: center;
+    line-height: 3rem; /* Increased from 2rem for more vertical space */
+}
+@media (max-width: 600px) {
+    .board-cell {
+        font-size: 1.5rem;
+        line-height: 2.25rem; /* Increased proportionally */
+    }
+}
+</style>
+""", unsafe_allow_html=True)
+
 # Sidebar for game controls
 with st.sidebar:
     st.header("Game Controls")
@@ -126,7 +164,7 @@ if "error" in st.session_state and st.session_state.error:
 if "game_state" in st.session_state and st.session_state.game_state:
     game_state = st.session_state.game_state
     
-    render_game_status(game_state)
+    render_game_info(game_state)
     st.write("---")
     render_board_and_buttons(game_state["board"], game_state)
 else:
