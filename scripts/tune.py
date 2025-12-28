@@ -45,7 +45,7 @@ def objective(trial: optuna.Trial) -> float:
             batch_size=batch_size,
             num_episodes=5000,  # Use fewer episodes for faster tuning
             eval_freq=1000,
-            seed=42,  # Use a fixed seed for all trials for fair comparison
+            seed=42,
         )
 
         final_win_rate = trainer.train()
@@ -74,9 +74,6 @@ def main():
     print("  Best Parameters:")
     for key, value in study.best_trial.params.items():
         print(f"    {key}: {value}")
-    
-    # You can also view all trials in the MLflow UI under the "Connect4 Hyperparameter Tuning" experiment
-
 
 if __name__ == "__main__":
     main()

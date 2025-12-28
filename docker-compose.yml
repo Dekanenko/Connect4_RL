@@ -9,12 +9,12 @@ services:
     ports:
       - "8000:8000"
     environment:
-      # This is where you would put your best model's run_id for production
-      # MLFLOW_RUN_ID: "your_best_run_id_here"
+      # Allow requests from the Streamlit default ports for local development
+      CORS_ALLOWED_ORIGINS: "http://localhost:8501,http://127.0.0.1:8501"
+      # MLFLOW_RUN_ID: "best_run_id_here"
       PYTHONUNBUFFERED: 1
     volumes:
       # Mount the mlruns directory to allow the backend to access it
-      # This is for local development convenience. In production, the model is baked in.
       - ./mlruns:/app/mlruns
     networks:
       - connect4-net
@@ -27,7 +27,6 @@ services:
     ports:
       - "8501:8501"
     environment:
-      # This is the key for inter-container communication.
       # The frontend can reach the backend using its service name 'backend'.
       - BACKEND_URL=http://backend:8000/api
     depends_on:
