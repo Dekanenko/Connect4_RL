@@ -30,20 +30,14 @@ COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy the application source code and the models into the container
-# These paths are now relative to the project root, which is our build context.
 COPY ./backend/src/ /app/src
 COPY ./models/ /app/models
 
 # Set the PYTHONPATH to include the src directory
-# This is crucial for the Python interpreter to find the 'connect4' package.
 ENV PYTHONPATH=/app/src
 
 # Expose the port the app runs on
 EXPOSE 8000
 
 # Command to run the application
-# Use gunicorn for a production-ready server.
-# We use a single worker (-w 1) to ensure that the in-memory session
-# dictionary is shared across all requests. For a larger-scale application,
-# this would be replaced by a shared session store like Redis.
 CMD ["gunicorn", "-w", "1", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "src.connect4.api.main:app"]

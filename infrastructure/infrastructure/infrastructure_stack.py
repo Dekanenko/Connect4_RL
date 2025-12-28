@@ -38,8 +38,8 @@ class Connect4CdkStack(Stack):
         # Backend Task Definition
         backend_task_definition = ecs.FargateTaskDefinition(
             self, "BackendTaskDef",
-            memory_limit_mib=512,
-            cpu=256,
+            memory_limit_mib=1024,
+            cpu=512,
         )
         backend_task_definition.add_container(
             "BackendContainer",
@@ -48,14 +48,18 @@ class Connect4CdkStack(Stack):
             logging=ecs.LogDrivers.aws_logs(
                 stream_prefix="Connect4Backend",
                 log_retention=logs.RetentionDays.ONE_WEEK
-            )
+            ),
+            environment={
+                # Allow the deployed frontend to make requests to this backend.
+                "CORS_ALLOWED_ORIGINS": f"http://{lb.load_balancer_dns_name}"
+            }
         )
 
         # Frontend Task Definition (now safely referencing the ALB)
         frontend_task_definition = ecs.FargateTaskDefinition(
             self, "FrontendTaskDef",
-            memory_limit_mib=512,
-            cpu=256,
+            memory_limit_mib=1024,
+            cpu=512,
         )
         frontend_task_definition.add_container(
             "FrontendContainer",
@@ -87,7 +91,6 @@ class Connect4CdkStack(Stack):
         )
 
         # Part 6: ALB Listener and Routing Rules
-        # Now configure the ALB to route traffic to the services.
         listener = lb.add_listener("PublicListener", port=80)
 
         # Default rule: Route traffic to the frontend

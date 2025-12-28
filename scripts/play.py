@@ -64,7 +64,6 @@ def play(run_id: str, auto_play: bool):
             model_uri = f"mlruns/1/models/{run_id}/artifacts"
             print(f"Loading model from MLflow run: {run_id}")
             loaded_model = mlflow.pytorch.load_model(model_uri, map_location=device)
-            # CRITICAL: Assign the loaded model's state dict to our agent
             agent.model.load_state_dict(loaded_model.state_dict())
         else:
             # Fallback to local model if no run_id is provided

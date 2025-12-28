@@ -16,8 +16,6 @@ async def lifespan(app: FastAPI):
     # Load the trained DQN agent model from MLflow on application startup.
     # The model is stored in app.state to be accessible across the application.
     
-    # IMPORTANT: Replace this with the Run ID of your best model from MLflow
-    # In a production setup, you would manage this via an environment variable.
     run_id = os.environ.get("MLFLOW_RUN_ID")
 
     loaded_state_dict = None
@@ -69,12 +67,13 @@ app = FastAPI(
 )
 
 # --- Middleware ---
-# Configure CORS to allow your frontend to communicate with this backend.
-# This is a permissive setup for development. For production, you might want
-# to restrict the origins.
+# Configure CORS to allow frontend to communicate with this backend.
+# Origins are read from an environment variable for flexibility.
+CORS_ALLOWED_ORIGINS = os.environ.get("CORS_ALLOWED_ORIGINS", "*").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
