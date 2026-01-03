@@ -4,7 +4,7 @@ This project implements a Deep Q-Network (DQN) agent to play the game of Connect
 
 This repository showcases a full, end-to-end project for creating and deploying a sophisticated AI application.
 
-![Connect4 Frontend](./.github/assets/connect4-demo.png) <!-- Placeholder image -->
+![Connect4 Frontend](./.github/assets/connect4-demo.png)
 
 ## Features
 
