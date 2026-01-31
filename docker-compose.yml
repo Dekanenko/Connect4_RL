@@ -9,8 +9,8 @@ services:
     ports:
       - "8000:8000"
     environment:
-      # Allow requests from the Streamlit default ports for local development
-      CORS_ALLOWED_ORIGINS: "http://localhost:8501,http://127.0.0.1:8501"
+      # Allow requests from the Next.js frontend ports for local development
+      CORS_ALLOWED_ORIGINS: "http://localhost:8501,http://127.0.0.1:8501,http://frontend:8501"
       # MLFLOW_RUN_ID: "best_run_id_here"
       PYTHONUNBUFFERED: 1
     volumes:
@@ -21,14 +21,17 @@ services:
 
   frontend:
     build:
-      context: .
-      dockerfile: frontend/Dockerfile
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Build-time environment variable for the API URL
+        NEXT_PUBLIC_BACKEND_URL: http://localhost:8000/api
     image: connect4-frontend
     ports:
       - "8501:8501"
     environment:
-      # The frontend can reach the backend using its service name 'backend'.
-      - BACKEND_URL=http://backend:8000/api
+      # Runtime environment variable (Next.js uses build-time for NEXT_PUBLIC_*)
+      - NODE_ENV=production
     depends_on:
       - backend
     networks:
@@ -37,4 +40,3 @@ services:
 networks:
   connect4-net:
     driver: bridge
-

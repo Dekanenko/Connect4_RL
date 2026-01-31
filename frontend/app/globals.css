@@ -1,0 +1,272 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Cybercore Deep Blues - Matching inspiration images */
+  --background: #020410;
+  --foreground: #e0f0ff;
+  
+  /* Card - Deep void */
+  --card: #040818;
+  --card-foreground: #e0f0ff;
+  
+  /* Popover */
+  --popover: #030612;
+  --popover-foreground: #e0f0ff;
+  
+  /* Primary - Electric Cyan */
+  --primary: #00d4ff;
+  --primary-foreground: #020410;
+  
+  /* Secondary - Deep Navy */
+  --secondary: #0a1628;
+  --secondary-foreground: #60d0ff;
+  
+  /* Muted */
+  --muted: #0a1628;
+  --muted-foreground: #4a90b0;
+  
+  /* Accent - Bright Cyan */
+  --accent: #00b8e6;
+  --accent-foreground: #020410;
+  
+  /* Destructive - Error Red */
+  --destructive: #ff3040;
+  --destructive-foreground: #e0f0ff;
+  
+  /* Borders - Cyan tinted */
+  --border: #1a3050;
+  --input: #0a1628;
+  --ring: #00d4ff;
+  
+  --radius: 0.5rem;
+
+  /* Font variables */
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+  }
+}
+
+/* Custom scrollbar for cyber aesthetic */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #020410;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1a3050;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2a4060;
+}
+
+/* Glitch text effect */
+.glitch-text {
+  position: relative;
+}
+
+.glitch-text::before,
+.glitch-text::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+}
+
+.glitch-text::before {
+  color: #00ffff;
+  z-index: -1;
+}
+
+.glitch-text::after {
+  color: #6060ff;
+  z-index: -2;
+}
+
+.glitch-text:hover::before {
+  animation: glitch-1 0.3s infinite linear alternate-reverse;
+  opacity: 0.8;
+}
+
+.glitch-text:hover::after {
+  animation: glitch-2 0.3s infinite linear alternate-reverse;
+  opacity: 0.8;
+}
+
+@keyframes glitch-1 {
+  0% { transform: translate(0); }
+  20% { transform: translate(-2px, 2px); }
+  40% { transform: translate(-2px, -2px); }
+  60% { transform: translate(2px, 2px); }
+  80% { transform: translate(2px, -2px); }
+  100% { transform: translate(0); }
+}
+
+@keyframes glitch-2 {
+  0% { transform: translate(0); }
+  20% { transform: translate(2px, -2px); }
+  40% { transform: translate(2px, 2px); }
+  60% { transform: translate(-2px, -2px); }
+  80% { transform: translate(-2px, 2px); }
+  100% { transform: translate(0); }
+}
+
+/* Glitch hover animations */
+.group:hover .animate-glitch-cyan {
+  animation: glitch-cyan 0.15s ease infinite;
+}
+
+.group:hover .animate-glitch-rose {
+  animation: glitch-rose 0.15s ease infinite 0.05s;
+}
+
+.group:hover .animate-scan {
+  animation: scan-line 1.5s linear infinite;
+}
+
+/* Animation keyframes */
+@keyframes glitch-cyan {
+  0%, 100% { transform: translateX(0); opacity: 0; }
+  10%, 30% { transform: translateX(-2px); opacity: 0.8; }
+  20%, 40% { transform: translateX(2px); opacity: 0.8; }
+}
+
+@keyframes glitch-rose {
+  0%, 100% { transform: translateX(0); opacity: 0; }
+  10%, 30% { transform: translateX(2px); opacity: 0.8; }
+  20%, 40% { transform: translateX(-2px); opacity: 0.8; }
+}
+
+@keyframes scan-line {
+  0% { transform: translateY(-100%); opacity: 1; }
+  100% { transform: translateY(100%); opacity: 1; }
+}
+
+@keyframes slideProgress {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+.animate-slide-progress {
+  animation: slideProgress 1.5s linear infinite;
+}
+
+/* Glitch appear animation for game pieces */
+@keyframes glitch-appear {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+    filter: blur(8px) hue-rotate(90deg);
+  }
+  10% {
+    opacity: 0.5;
+    transform: scale(1.1) translateX(-3px);
+    filter: blur(4px) hue-rotate(-45deg);
+  }
+  20% {
+    opacity: 0.3;
+    transform: scale(0.95) translateX(3px);
+    filter: blur(6px) hue-rotate(45deg);
+  }
+  30% {
+    opacity: 0.8;
+    transform: scale(1.05) translateY(-2px);
+    filter: blur(2px) hue-rotate(-20deg);
+  }
+  40% {
+    opacity: 0.6;
+    transform: scale(0.98) translateY(2px) translateX(-2px);
+    filter: blur(3px) hue-rotate(30deg);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.02);
+    filter: blur(1px) hue-rotate(-10deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.99) translateX(1px);
+    filter: blur(0.5px) hue-rotate(5deg);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.01) translateX(-1px);
+    filter: blur(0);
+  }
+  80% {
+    opacity: 1;
+    transform: scale(1);
+    filter: none;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: none;
+  }
+}
+
+.animate-glitch-appear {
+  animation: glitch-appear 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+/* CRT flicker effect for certain elements */
+@keyframes crt-flicker {
+  0% { opacity: 0.97; }
+  5% { opacity: 1; }
+  10% { opacity: 0.98; }
+  15% { opacity: 1; }
+  20% { opacity: 0.96; }
+  100% { opacity: 1; }
+}
+
+.crt-flicker {
+  animation: crt-flicker 0.15s infinite;
+}
+
+/* Text shadow for glowing text */
+.text-glow-cyan {
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.5), 0 0 20px rgba(0, 212, 255, 0.3), 0 0 30px rgba(0, 212, 255, 0.1);
+}
+
+.text-glow-indigo {
+  text-shadow: 0 0 10px rgba(100, 100, 255, 0.5), 0 0 20px rgba(100, 100, 255, 0.3), 0 0 30px rgba(100, 100, 255, 0.1);
+}
+
+/* Box glow effects */
+.box-glow-cyan {
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.2), inset 0 0 20px rgba(0, 212, 255, 0.05);
+}
+
+.box-glow-indigo {
+  box-shadow: 0 0 20px rgba(100, 100, 255, 0.2), inset 0 0 20px rgba(100, 100, 255, 0.05);
+}
+
+/* Noise texture overlay */
+.noise-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
