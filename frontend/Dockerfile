@@ -3,7 +3,7 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 
 # Install dependencies
-COPY package.json ./
+COPY ./frontend/package.json ./
 RUN npm install --legacy-peer-deps
 
 # Stage 2: Build
@@ -12,7 +12,7 @@ WORKDIR /app
 
 # Copy dependencies
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY ./frontend/ .
 
 # Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED=1
