@@ -21,8 +21,8 @@ type GameStatus = "playing" | "won" | "lost" | "draw" | "connecting" | "error"
 const ROWS = 6
 const COLS = 7
 
-// Get backend URL from environment or default to localhost
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000/api"
+// Backend URL: use relative path in production (same ALB), absolute URL for local dev
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "/api"
 
 function createEmptyBoard(): Board {
   return Array(ROWS).fill(null).map(() => Array(COLS).fill(null))
