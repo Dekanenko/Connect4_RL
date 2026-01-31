@@ -99,7 +99,7 @@ class Connect4CdkStack(Stack):
             port=80,
             targets=[frontend_service],
             health_check=elbv2.HealthCheck(
-                path="/healthz",
+                path="/api/healthz",
                 port="8501"
             )
         )
